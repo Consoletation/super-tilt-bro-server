@@ -3,12 +3,12 @@
 mkdir -p /tmp/stb_games
 STB_GAME_SUMMARIES=/tmp/stb_games ../src/server/stb_server &
 server_pid=$!
-../login_server/login_server.py --db-file /tmp/stb_login.json --log-file /tmp/stb_login.log &
+../python/login_server/login_server.py --db-file /tmp/stb_login.json --log-file /tmp/stb_login.log &
 login_pid=$!
-../ranking_server/ranking_server.py --db-file /tmp/stb_ranking.json --log-file /tmp/stb_ranking.log &
+../python/ranking_server/ranking_server.py --db-file /tmp/stb_ranking.json --log-file /tmp/stb_ranking.log &
 ranking_pid=$!
 mkdir -p /tmp/stb_replay
-../replay_server/replay_server.py --db-file /tmp/stb_replay.json --replay-dir /tmp/stb_replay --log-file /tmp/stb_replay.log --bmov-to-fm2 ../tools/bmov_to_fm2 &
+../python/replay_server/replay_server.py --db-file /tmp/stb_replay.json --replay-dir /tmp/stb_replay --log-file /tmp/stb_replay.log --bmov-to-fm2 ../tools/bmov_to_fm2 &
 replay_pid=$!
 
 echo "PIDs"
