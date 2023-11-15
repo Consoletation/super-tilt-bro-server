@@ -1,0 +1,96 @@
+[project]
+name = "stb-server"
+dynamic = ["version"]
+description = "Super Tilt Bro server"
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">=3.8.1"
+keywords = ["nes", "stb", "server"]
+authors = [
+    {name = "Sylvain Gadrat", email = "sgadrat@wontfix.it"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+]
+dependencies = [
+    "requests>=2.25",
+]
+
+[project.urls]
+repository = "https://github.com/sgadrat/super-tilt-bro-server"
+tracker = "https://github.com/sgadrat/super-tilt-bro-server/issues"
+
+[build-system]
+requires = [
+    'setuptools>=45',
+    'setuptools_scm[toml]>=6.2',
+    'twine>=3.3',
+    'wheel>=0.37',
+]
+build-backend = 'setuptools.build_meta'
+
+[tool.setuptools.packages]
+find = {}
+
+[tool.setuptools_scm]
+root = ".."
+version_scheme = "post-release"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.ruff]
+exclude = ["**/_version.py"]
+target-version = "py38"
+select = [
+    "E",    # pycodestyle
+    "F",    # Pyflakes
+    "W",    # pycodestyle
+    "C90",  # mccabe
+    "I",    # isort
+    "N",    # pep8-naming
+    "D",    # pydocstyle
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "A",    # flake8-builtins
+    "C4",   # flake8-comprehensions
+    "DTZ",  # flake8-datetimez
+    "EM",   # flake8-errmsg
+    "EXE",  # flake8-executable
+    "ISC",  # flake8-implicit-str-concat
+    "ICN",  # flake8-import-conventions
+    "G",    # flake8-logging-format
+    "PIE",  # flake8-pie
+    "T20",  # flake8-print
+    "PT",   # flake8-pytest-style
+    "Q",    # flake8-quotes
+    "RSE",  # flake8-raise
+    "RET",  # flake8-return
+    "SLF",  # flake8-self
+    "SIM",  # flake8-simplify
+    "TID",  # flake8-tidy-imports
+    "TCH",  # flake8-type-checking
+    "INT",  # flake8-gettext
+    "PTH",  # flake8-use-pathlib
+    "ERA",  # eradicate
+    "PD",   # pandas-vet
+    "TRY",  # tryceratops
+    "RUF",  # ruff
+]
+ignore = [
+    "D203",   # 1 blank line required before class docstring
+    "D213",   # Multi-line docstring summary should start at the first line
+]
+
+[tool.ruff.isort]
+required-imports = ["from __future__ import annotations"]
