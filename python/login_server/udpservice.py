@@ -258,8 +258,8 @@ def serve(listen_port):
             if message[1] in message_handlers:
                 try:
                     message_handlers[message[1]](message, client_addr, sock)
-                except Exception as e:
-                    logging.error("error when handling message: %s", e)
+                except Exception:
+                    logging.exception("error when handling message")
             else:
                 logging.debug("unknown login method")
                 sock.sendto(

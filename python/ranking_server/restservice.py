@@ -34,8 +34,8 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(b'{"status": "ok"}')
         except AuthError:
             pass
-        except Exception as e:
-            logging.error('failed handling request on "%s": %s', self.path, e)
+        except Exception:
+            logging.exception('failed handling request on "%s"', self.path)
 
     def do_GET(self):
         try:

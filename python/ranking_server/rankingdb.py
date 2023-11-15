@@ -184,8 +184,8 @@ def get_ladder():
             if user_info["name"] is None:
                 user_info["name"] = _get_user_name(user_id)
                 db_updated = True
-    except Exception as e:
-        logging.error("Failed to retrieve new ranked players names: %s", e)
+    except Exception:
+        logging.exception("Failed to retrieve new ranked players names")
 
     if db_updated:
         _sync_db()
