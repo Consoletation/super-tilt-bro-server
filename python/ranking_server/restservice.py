@@ -1,7 +1,12 @@
+"""REST API for ranking service."""
+
+from __future__ import annotations
+
 import http.server
 import json
-from logging import error
-import rankingdb
+import logging
+
+from . import rankingdb
 
 
 class AuthError(Exception):
@@ -11,7 +16,7 @@ class AuthError(Exception):
 class RequestHandler(http.server.BaseHTTPRequestHandler):
     def _check_addr(self):
         if self.client_address[0] not in self.server._addr_white_list:
-            raise AuthError()
+            raise AuthError
 
     def log_request(code="-", size="-"):
         pass
@@ -30,7 +35,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         except AuthError:
             pass
         except Exception as e:
-            error('failed handling request on "{}": {}'.format(self.path, e))
+            logging.error('failed handling request on "%s": %s', self.path, e)
 
     def do_GET(self):
         try:

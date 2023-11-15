@@ -1,3 +1,7 @@
+"""Login database management for Super Tilt Bro."""
+
+from __future__ import annotations
+
 import json
 import os.path
 import threading
@@ -31,7 +35,7 @@ def _new_registered_user_id():
 def _sync_db():
     global _db_file, user_db
     if _db_file is not None:
-        tmp_db_path = "{}.tmp".format(_db_file)
+        tmp_db_path = f"{_db_file}.tmp"
         with open(tmp_db_path, "w") as tmp_db:
             json.dump(user_db, tmp_db)
         os.replace(tmp_db_path, _db_file)
@@ -48,7 +52,7 @@ def load(db_file):
         _db_file = db_file
 
         if db_file is not None and os.path.isfile(db_file):
-            with open(db_file, "r") as f:
+            with open(db_file) as f:
                 user_db = json.load(f)
 
 

@@ -1,3 +1,7 @@
+"""Replay database management for Super Tilt Bro."""
+
+from __future__ import annotations
+
 import base64
 import json
 import os.path
@@ -23,7 +27,7 @@ replay_db = {
 def _sync_db():
     global _db_file, replay_db
     if _db_file is not None:
-        tmp_db_path = "{}.tmp".format(_db_file)
+        tmp_db_path = f"{_db_file}.tmp"
         with open(tmp_db_path, "w") as tmp_db:
             json.dump(replay_db, tmp_db)
         os.replace(tmp_db_path, _db_file)
@@ -31,7 +35,7 @@ def _sync_db():
 
 def get_fm2_path(game):
     global _replay_dir
-    return "{}/{}.fm2".format(_replay_dir, game)
+    return f"{_replay_dir}/{game}.fm2"
 
 
 #
@@ -48,11 +52,11 @@ def load(db_file, replay_dir, bmov_to_fm2):
 
     _bmov_to_fm2 = bmov_to_fm2
     if not os.path.isfile(bmov_to_fm2):
-        raise Exception('unable to find bmov_to_fm2 at "{}"'.format(bmov_to_fm2))
+        raise Exception(f'unable to find bmov_to_fm2 at "{bmov_to_fm2}"')
 
     _db_file = db_file
     if db_file is not None and os.path.isfile(db_file):
-        with open(db_file, "r") as f:
+        with open(db_file) as f:
             replay_db = json.load(f)
 
 
@@ -75,7 +79,7 @@ def push_games(games_info):
         for field in mandatory_fields:
             if field not in game_info:
                 raise Exception(
-                    'invalid game info format, missing "{}" field'.format(field)
+                    f'invalid game info format, missing "{field}" field'
                 )
 
         if game_info["game"] in replay_db["replays"]:
@@ -133,5 +137,5 @@ def get_games_list():
 
 
 def get_fm2(game):
-    with open(get_fm2_path(game), "r") as fm2_file:
+    with open(get_fm2_path(game)) as fm2_file:
         return fm2_file.read()

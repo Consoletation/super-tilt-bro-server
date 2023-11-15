@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 
+"""Replay server launcher for Super Tilt Bro."""
+
+from __future__ import annotations
+
 import argparse
 import logging
 import os.path
-import replaydb
-import restservice
 import subprocess
 import sys
+
+from . import replaydb, restservice
 
 # Parameters' default
 LISTEN_PORT_REST = 8125
@@ -23,51 +27,43 @@ parser.add_argument(
     "--rest-port",
     type=int,
     default=LISTEN_PORT_REST,
-    help="port listening for REST requests (default: {})".format(LISTEN_PORT_REST),
+    help=f"port listening for REST requests (default: {LISTEN_PORT_REST})",
 )
 parser.add_argument(
     "--db-file",
     type=str,
     default=DB_FILE,
-    help="file storing persistant info, empty for no file (default: {})".format(
-        DB_FILE
-    ),
+    help=f"file storing persistant info, empty for no file (default: {DB_FILE})",
 )
 parser.add_argument(
     "--replay-dir",
     type=str,
     default=REPLAY_DIR,
-    help="directory to store replay files (default: {})".format(REPLAY_DIR),
+    help=f"directory to store replay files (default: {REPLAY_DIR})",
 )
 parser.add_argument(
     "--bmov-to-fm2",
     type=str,
     default=BMOV_TO_FM2,
-    help="replay conversion utility, absolute or in PATH (default: {})".format(
-        BMOV_TO_FM2
-    ),
+    help=f"replay conversion utility, absolute or in PATH (default: {BMOV_TO_FM2})",
 )
 parser.add_argument(
     "--white-list",
     type=str,
     default=CLIENTS_WHITE_LIST,
-    help="comma-separated list of IP addresses of authorised clients (default: {})".format(
-        CLIENTS_WHITE_LIST
-    ),
+    help=f"comma-separated list of IP addresses of authorised clients (default: {CLIENTS_WHITE_LIST})",
 )
 parser.add_argument(
     "--log-file",
     type=str,
     default=LOG_FILE,
-    help="logs destination, empty for stderr (default: {})".format(LOG_FILE),
+    help=f"logs destination, empty for stderr (default: {LOG_FILE})",
 )
 parser.add_argument(
     "--log-level",
     type=str,
     default=LOG_LEVEL,
-    help="minimal severity of logs [debug, info, warning, error, critical] (default: {})".format(
-        LOG_LEVEL
-    ),
+    help=f"minimal severity of logs [debug, info, warning, error, critical] (default: {LOG_LEVEL})",
 )
 args = parser.parse_args()
 
@@ -83,12 +79,12 @@ if args.log_level not in ["debug", "info", "warning", "error", "critical"]:
 if not os.path.isfile(bmov_to_fm2):
     res = subprocess.run(["which", bmov_to_fm2], encoding="utf-8")
     if res.returncode != 0:
-        logging.error('unable to find replay converter "{}"'.format(bmov_to_fm2))
+        logging.error('unable to find replay converter "%s"', bmov_to_fm2)
         sys.exit(1)
     bmov_to_fm2 = res.stdout.rstrip("\r\n")
 
 if not os.path.isdir(replay_dir):
-    logging.error('invalid replay directory: "{}"'.format(replay_dir))
+    logging.error('invalid replay directory: "%s"', replay_dir)
     sys.exit(1)
 
 # Configure logging

@@ -1,7 +1,12 @@
+"""Ranking database management for Super Tilt Bro."""
+
+from __future__ import annotations
+
 import copy
 import json
-import logging as log
+import logging
 import os.path
+
 import requests
 
 #
@@ -21,8 +26,7 @@ ranking_db = {
 
 
 def _elo(player_mmr, opponent_mmr, score):
-    """
-    Compute player's updated mmr after an event.
+    """Compute player's updated mmr after an event.
 
     >>> _elo(1000, 1000, 1)
     1016
@@ -52,7 +56,7 @@ def _elo(player_mmr, opponent_mmr, score):
 def _sync_db():
     global _db_file, ranking_db
     if _db_file is not None:
-        tmp_db_path = "{}.tmp".format(_db_file)
+        tmp_db_path = f"{_db_file}.tmp"
         with open(tmp_db_path, "w") as tmp_db:
             json.dump(ranking_db, tmp_db)
         os.replace(tmp_db_path, _db_file)
@@ -62,7 +66,7 @@ def _get_user_id(timepoint, connection_id):
     # TODO should ask the login server for the association timepoint+connection_id to user_id
     #     For now user_id == connection_id, let's assume it
     #     just convert it to hex string type (to be a valid json property name)
-    return "{:08x}".format(int(connection_id))
+    return f"{int(connection_id):08x}"
 
 
 def _get_user_name(user_id):
@@ -73,20 +77,16 @@ def _get_user_name(user_id):
         )
     )
     if resp.status_code != 200:
-        log.error(
-            "bad status code for resoultion of user {}: {}".format(
-                user_id, resp.status_code
-            )
-        )
+        logging.error("bad status code for resoultion of user %s: %d", user_id, resp.status_code)
         return None
     user_name = json.loads(resp.text)
 
     if user_name is None:
         return None
     if not isinstance(user_name, str):
-        raise Exception("bad response type: {}".format(user_name))
+        raise Exception(f"bad response type: {user_name}")
     if len(user_name) < 3 or len(user_name) > 16:
-        raise Exception('unvalid name: "{}"'.format(user_name))
+        raise Exception(f'unvalid name: "{user_name}"')
     return user_name
 
 
@@ -100,7 +100,7 @@ def load(db_file, login_server):
 
     _db_file = db_file
     if db_file is not None and os.path.isfile(db_file):
-        with open(db_file, "r") as f:
+        with open(db_file) as f:
             ranking_db = json.load(f)
 
     _login_server = copy.deepcopy(login_server)
@@ -124,7 +124,7 @@ def push_games(games_info):
         for field in mandatory_fields:
             if field not in game_info:
                 raise Exception(
-                    'invalid game info format, missing "{}" field'.format(field)
+                    f'invalid game info format, missing "{field}" field'
                 )
 
         # Retrieve users IDs
@@ -185,7 +185,7 @@ def get_ladder():
                 user_info["name"] = _get_user_name(user_id)
                 db_updated = True
     except Exception as e:
-        log.error("Failed to retrieve new ranked players names: {}".format(e))
+        logging.error("Failed to retrieve new ranked players names: %s", e)
 
     if db_updated:
         _sync_db()

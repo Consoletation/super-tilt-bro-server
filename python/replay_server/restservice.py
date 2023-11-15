@@ -1,8 +1,13 @@
+"""REST API for replay service."""
+
+from __future__ import annotations
+
 import http.server
 import json
-from logging import error
-import replaydb
+import logging
 import re
+
+from . import replaydb
 
 #
 # Configurable constants
@@ -70,7 +75,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             self.server._addr_white_list is not None
             and self.client_address[0] not in self.server._addr_white_list
         ):
-            raise AuthError()
+            raise AuthError
 
     def log_request(code="-", size="-"):
         pass
@@ -95,7 +100,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             handler_func(self, url_params)
         except InvalidRequest as e:
             if not self._handled:
-                answer(self, "invalid request: {}".format(e), 400)
+                answer(self, f"invalid request: {e}", 400)
         finally:
             if not self._handled:
                 answer(self, "unhandled request", 500)
@@ -107,7 +112,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
         except AuthError:
             pass
         except Exception as e:
-            error('failed handling request on "{}": {}'.format(self.path, e))
+            logging.error('failed handling request on "%s": %s', self.path, e)
 
     def do_GET(self):
         try:

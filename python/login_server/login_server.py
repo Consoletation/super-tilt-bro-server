@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 
+"""Login server launcher for Super Tilt Bro."""
+
+from __future__ import annotations
+
 import argparse
 import logging
-import logindb
-import restservice
-import threading
 import signal
 import sys
-import udpservice
+import threading
+
+from . import logindb, restservice, udpservice
 
 # Parameters' default
 LISTEN_PORT_UDP = 0x1234
@@ -18,41 +21,37 @@ LOG_LEVEL = "info"
 
 # Parse command line
 parser = argparse.ArgumentParser(
-    description="Authentication server for Super Tilt Bro."
+    description="Authentication server for Super Tilt Bro.",
 )
 parser.add_argument(
     "--udp-port",
     type=int,
     default=LISTEN_PORT_UDP,
-    help="port listening for UDP requests (default: {})".format(LISTEN_PORT_UDP),
+    help=f"port listening for UDP requests (default: {LISTEN_PORT_UDP})",
 )
 parser.add_argument(
     "--rest-port",
     type=int,
     default=LISTEN_PORT_REST,
-    help="port listening for REST requests (default: {})".format(LISTEN_PORT_REST),
+    help=f"port listening for REST requests (default: {LISTEN_PORT_REST})",
 )
 parser.add_argument(
     "--db-file",
     type=str,
     default=LOGIN_DB_FILE,
-    help="file storing persistant login info, empty for no file (default: {})".format(
-        LOGIN_DB_FILE
-    ),
+    help=f"file storing persistant login info, empty for no file (default: {LOGIN_DB_FILE})",
 )
 parser.add_argument(
     "--log-file",
     type=str,
     default=LOG_FILE,
-    help="logs destination, empty for stderr (default: {})".format(LOG_FILE),
+    help=f"logs destination, empty for stderr (default: {LOG_FILE})",
 )
 parser.add_argument(
     "--log-level",
     type=str,
     default=LOG_LEVEL,
-    help="minimal severity of logs [debug, info, warning, error, critical] (default: {})".format(
-        LOG_LEVEL
-    ),
+    help=f"minimal severity of logs [debug, info, warning, error, critical] (default: {LOG_LEVEL})",
 )
 args = parser.parse_args()
 
@@ -83,7 +82,8 @@ thread_rest.start()
 
 # Wait for known signal
 try:
-    # Dumb implementation, wait any signal, KeyboardInterrupt will break the loop on SIGINT
+    # Dumb implementation, wait any signal,
+    # KeyboardInterrupt will break the loop on SIGINT
     while True:
         signal.pause()
 except KeyboardInterrupt:

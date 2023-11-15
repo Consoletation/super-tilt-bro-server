@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 
+"""Ranking server launcher for Super Tilt Bro."""
+
+from __future__ import annotations
+
 import argparse
 import logging
-import rankingdb
-import restservice
 import sys
+
+from . import rankingdb, restservice
 
 # Parameters' default
 LISTEN_PORT_REST = 8123
@@ -21,49 +25,43 @@ parser.add_argument(
     "--rest-port",
     type=int,
     default=LISTEN_PORT_REST,
-    help="port listening for REST requests (default: {})".format(LISTEN_PORT_REST),
+    help=f"port listening for REST requests (default: {LISTEN_PORT_REST})",
 )
 parser.add_argument(
     "--db-file",
     type=str,
     default=RANKING_DB_FILE,
-    help="file storing persistant ranking info, empty for no file (default: {})".format(
-        RANKING_DB_FILE
-    ),
+    help=f"file storing persistant ranking info, empty for no file (default: {RANKING_DB_FILE})",
 )
 parser.add_argument(
     "--white-list",
     type=str,
     default=CLIENTS_WHITE_LIST,
-    help="comma-separated list of IP addresses of authorised clients (default: {})".format(
-        CLIENTS_WHITE_LIST
-    ),
+    help=f"comma-separated list of IP addresses of authorised clients (default: {CLIENTS_WHITE_LIST})",
 )
 parser.add_argument(
     "--login-srv-addr",
     type=str,
     default=LOGIN_SERVER_ADDR,
-    help="address of the login server (default: {})".format(LOGIN_SERVER_ADDR),
+    help=f"address of the login server (default: {LOGIN_SERVER_ADDR})",
 )
 parser.add_argument(
     "--login-srv-port",
     type=int,
     default=LOGIN_SERVER_PORT,
-    help="port of the login server's REST API  (default: {})".format(LOGIN_SERVER_PORT),
+    help=f"port of the login server's REST API  (default: {LOGIN_SERVER_PORT})",
 )
 parser.add_argument(
     "--log-file",
     type=str,
     default=LOG_FILE,
-    help="logs destination, empty for stderr (default: {})".format(LOG_FILE),
+    help=f"logs destination, empty for stderr (default: {LOG_FILE})",
 )
 parser.add_argument(
     "--log-level",
     type=str,
     default=LOG_LEVEL,
-    help="minimal severity of logs [debug, info, warning, error, critical] (default: {})".format(
-        LOG_LEVEL
-    ),
+    help=f"minimal severity of logs [debug, info, warning, error, critical] (default: {LOG_LEVEL})",
 )
 args = parser.parse_args()
 

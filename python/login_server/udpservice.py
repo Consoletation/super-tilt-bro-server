@@ -1,6 +1,11 @@
+"""UDP service for STNP login extension."""
+
+from __future__ import annotations
+
+import logging
 import socket
-import logindb
-from logging import debug, info, warning, error
+
+from . import logindb
 
 #
 # STNP, login extension
@@ -93,8 +98,8 @@ def parse_login_request(message):
         for i in range(offset, offset + 16):
             c = message[i]
             if c >= len(STNP_LOGIN_CHARSET):
-                warning(
-                    "ill formated login request: invalid character at byte {}".format(i)
+                logging.warning(
+                    "ill formated login request: invalid character at byte %s", i
                 )
                 return None
             if c == 0:
@@ -107,7 +112,7 @@ def parse_login_request(message):
         or message[0] != STNP_LOGIN_MSG_TYPE
         or message[1] not in [STNP_LOGIN_PASSWORD, STNP_LOGIN_CREATE_ACCOUNT]
     ):
-        warning("ill formated login request")
+        logging.warning("ill formated login request")
         return None
 
     user = parse_stnp_str(2)
@@ -161,7 +166,7 @@ def handle_msg_login_password(message, client_addr, sock):
     # Get client info from DB (register the user if needed)
     client_info = logindb.get_user_info(client_credential["user"])
     if client_info is None:
-        info('new user: "{}"'.format(client_credential["user"]))
+        logging.info('new user: "%s"', client_credential["user"])
         logindb.register_user(client_credential["user"], client_credential["password"])
         client_info = logindb.get_user_info(client_credential["user"])
 
@@ -210,16 +215,16 @@ def handle_msg_create_account(message, client_addr, sock):
         return
 
     # Register the user
-    info('new user: "{}"'.format(client_credential["user"]))
+    logging.info('new user: "%s"', client_credential["user"])
     logindb.register_user(client_credential["user"], client_credential["password"])
     client_info = logindb.get_user_info(client_credential["user"])
 
     # Sanity check
     if client_info is None or client_info["password"] != client_credential["password"]:
-        error(
-            "failed to create '{}' '{}'".format(
-                client_credential["user"], client_credential["password"]
-            )
+        logging.error(
+            "failed to create '%s' '%s'",
+            client_credential["user"],
+            client_credential["password"],
         )
         sock.sendto(
             login_failed_msg(
@@ -242,21 +247,21 @@ def serve(listen_port):
     sock.bind(("", listen_port))
     while True:
         message, client_addr = sock.recvfrom(256)
-        debug("got message from {}: {}".format(client_addr, message))
+        logging.debug("got message from %s: %s", client_addr, message)
         message_handlers = {
             STNP_LOGIN_ANONYMOUS: handle_msg_login_anonymous,
             STNP_LOGIN_PASSWORD: handle_msg_login_password,
             STNP_LOGIN_CREATE_ACCOUNT: handle_msg_create_account,
         }
         if len(message) >= 2 and message[0] == STNP_LOGIN_MSG_TYPE:
-            debug("login message")
+            logging.debug("login message")
             if message[1] in message_handlers:
                 try:
                     message_handlers[message[1]](message, client_addr, sock)
                 except Exception as e:
-                    error("error when handling message: {}".format(e))
+                    logging.error("error when handling message: %s", e)
             else:
-                debug("unknown login method")
+                logging.debug("unknown login method")
                 sock.sendto(
                     login_failed_msg(
                         "invalid login     "
