@@ -25,6 +25,7 @@ replay_db = {
 
 
 def _sync_db():
+    """Synchronize the database with the file."""
     global _db_file, replay_db
     if _db_file is not None:
         tmp_db_path = f"{_db_file}.tmp"
@@ -34,6 +35,7 @@ def _sync_db():
 
 
 def get_fm2_path(game):
+    """Return the path to the fm2 file for the given game."""
     global _replay_dir
     return f"{_replay_dir}/{game}.fm2"
 
@@ -44,6 +46,7 @@ def get_fm2_path(game):
 
 
 def load(db_file, replay_dir, bmov_to_fm2):
+    """Load the database from the given file."""
     global _db_file, _replay_dir, _bmov_to_fm2, replay_db
 
     _replay_dir = replay_dir
@@ -61,6 +64,7 @@ def load(db_file, replay_dir, bmov_to_fm2):
 
 
 def push_games(games_info):
+    """Push the given games info to the database."""
     global replay_db, _replay_dir, _bmov_to_fm2
 
     # Record games
@@ -129,6 +133,7 @@ def push_games(games_info):
 
 
 def get_games_list():
+    """Return the list of the last 50 games."""
     global replay_db
     return sorted(
         [replay_db["replays"][game] for game in replay_db["replays"]],
@@ -137,5 +142,6 @@ def get_games_list():
 
 
 def get_fm2(game):
+    """Return the fm2 file for the given game."""
     with open(get_fm2_path(game)) as fm2_file:
         return fm2_file.read()

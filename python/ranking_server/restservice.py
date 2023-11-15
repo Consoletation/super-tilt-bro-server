@@ -10,18 +10,23 @@ from . import rankingdb
 
 
 class AuthError(Exception):
-    pass
+    """Raised when the client is not authorized to perform the request."""
 
 
 class RequestHandler(http.server.BaseHTTPRequestHandler):
+    """Request handler for the ranking service."""
+
     def _check_addr(self):
+        """Check that the client address is authorized."""
         if self.client_address[0] not in self.server._addr_white_list:
             raise AuthError
 
+    @staticmethod
     def log_request(code="-", size="-"):
-        pass
+        """Suppress logging of requests."""
 
     def do_POST(self):
+        """Handle a POST request."""
         try:
             self._check_addr()
             if self.path == "/api/rankings" and "Content-Length" in self.headers:
@@ -38,6 +43,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             logging.exception('failed handling request on "%s"', self.path)
 
     def do_GET(self):
+        """Handle a GET request."""
         try:
             self._check_addr()
             if self.path == "/api/rankings":
@@ -49,6 +55,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 def serve(port, whitelist):
+    """Serve the ranking service on the given port."""
     server_address = ("", port)
     httpd = http.server.ThreadingHTTPServer(server_address, RequestHandler)
     httpd._addr_white_list = whitelist

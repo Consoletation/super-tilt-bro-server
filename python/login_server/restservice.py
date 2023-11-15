@@ -21,14 +21,15 @@ RE_URL_PATTERN = re.compile("^/api/login/(?P<req>[^/]+)(?P<params>/.*)$")
 
 
 class AuthError(Exception):
-    pass
+    """Raised when the client is not authorized to perform the request."""
 
 
 class InvalidRequest(Exception):
-    pass
+    """Raised when the request is invalid."""
 
 
 def answer(request, message, code=200):
+    """Answer the request with the given message and code."""
     request.send_response(code)
     request.end_headers()
     request.wfile.write(bytes(json.dumps(message), "utf-8"))
@@ -36,6 +37,7 @@ def answer(request, message, code=200):
 
 
 def success(request, message):
+    """Answer the request with the given message and code 200."""
     answer(request, message, 200)
 
 
@@ -45,6 +47,7 @@ def success(request, message):
 
 
 def get_user_name(request, url_params):
+    """Get the name of the user with the given ID."""
     logging.debug('get_user_name: "%s"', url_params)
     if len(url_params) == 1:
         user_id = int(url_params[0])
@@ -58,17 +61,22 @@ def get_user_name(request, url_params):
 
 
 class RequestHandler(http.server.BaseHTTPRequestHandler):
+    """Request handler for the login service."""
+
     def _check_addr(self):
+        """Check that the client address is allowed to perform the request."""
         if (
             self.server._addr_white_list is not None
             and self.client_address[0] not in self.server._addr_white_list
         ):
             raise AuthError
 
+    @staticmethod
     def log_request(code="-", size="-"):
-        pass
+        """Suppress logging of requests."""
 
     def handle_request(self, method):
+        """Handle the request."""
         self._handled = False
 
         try:
@@ -94,6 +102,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 answer(self, "unhandled request", 500)
 
     def do_POST(self):
+        """Handle a POST request."""
         try:
             self._check_addr()
             self.handle_request("post")
@@ -103,6 +112,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             logging.exception('failed handling request on "%s"', self.path)
 
     def do_GET(self):
+        """Handle a GET request."""
         try:
             self._check_addr()
             self.handle_request("get")
@@ -111,6 +121,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 def serve(port, whitelist=None):
+    """Serve the login service on the given port."""
     server_address = ("", port)
     httpd = http.server.ThreadingHTTPServer(server_address, RequestHandler)
     httpd._addr_white_list = whitelist

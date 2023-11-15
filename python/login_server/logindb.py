@@ -25,6 +25,7 @@ user_db = {
 
 
 def _new_registered_user_id():
+    """Get a new registered user ID."""
     global user_db
     new_id = user_db["next_registered_id"]
     assert new_id < 0x100000000
@@ -33,6 +34,7 @@ def _new_registered_user_id():
 
 
 def _sync_db():
+    """Synchronize the database with the file."""
     global _db_file, user_db
     if _db_file is not None:
         tmp_db_path = f"{_db_file}.tmp"
@@ -47,6 +49,7 @@ def _sync_db():
 
 
 def load(db_file):
+    """Load the database from the given file."""
     global _db_file, _db_mutex, user_db
     with _db_mutex:
         _db_file = db_file
@@ -57,6 +60,7 @@ def load(db_file):
 
 
 def get_anonymous_id():
+    """Get a new anonymous user ID."""
     global _db_mutex, user_db
     with _db_mutex:
         new_id = user_db["next_anonymous_id"]
@@ -66,6 +70,7 @@ def get_anonymous_id():
 
 
 def get_user_info(user_name):
+    """Get the user info for the given user name."""
     global _dbg_mutex, user_db
     with _db_mutex:
         _sync_db()
@@ -73,6 +78,7 @@ def get_user_info(user_name):
 
 
 def get_user_name(user_id):
+    """Get the user name for the given user ID."""
     global _db_mutex, user_db
     with _db_mutex:
         for user_name, user_info in user_db["registered_logins"].items():
@@ -82,6 +88,7 @@ def get_user_name(user_id):
 
 
 def register_user(user_name, password):
+    """Register a new user."""
     global _db_mutex, user_db
     with _db_mutex:
         assert user_name not in user_db["registered_logins"]

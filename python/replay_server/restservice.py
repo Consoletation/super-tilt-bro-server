@@ -21,14 +21,15 @@ RE_URL_PATTERN = re.compile("^/api/replay/(?P<req>[^/]+)(?P<params>/.*)$")
 
 
 class AuthError(Exception):
-    pass
+    """Raised when the client is not authorized to perform the request."""
 
 
 class InvalidRequest(Exception):
-    pass
+    """Raised when the request is invalid."""
 
 
 def answer(request, message, code=200):
+    """Answer the request with the given message and code."""
     request.send_response(code)
     request.end_headers()
     request.wfile.write(bytes(json.dumps(message), "utf-8"))
@@ -36,10 +37,12 @@ def answer(request, message, code=200):
 
 
 def success(request, message):
+    """Answer the request with the given message and code 200."""
     answer(request, message, 200)
 
 
 def read_msg(request):
+    """Read the message from the request."""
     if "Content-Length" in request.headers:
         data = request.rfile.read(int(request.headers["Content-Length"]))
         return json.loads(data)
@@ -52,11 +55,13 @@ def read_msg(request):
 
 
 def post_games(request, url_params):
+    """Push the given games info to the database."""
     replaydb.push_games(read_msg(request))
     success(request, {"status": "ok"})
 
 
 def get_games(request, url_params):
+    """Get the list of games."""
     if len(url_params) == 0:
         success(request, replaydb.get_games_list())
     elif len(url_params) == 1:
@@ -70,17 +75,22 @@ def get_games(request, url_params):
 
 
 class RequestHandler(http.server.BaseHTTPRequestHandler):
+    """Request handler for the replay service."""
+
     def _check_addr(self):
+        """Check that the client address is allowed to perform the request."""
         if (
             self.server._addr_white_list is not None
             and self.client_address[0] not in self.server._addr_white_list
         ):
             raise AuthError
 
+    @staticmethod
     def log_request(code="-", size="-"):
-        pass
+        """Suppress logging of requests."""
 
     def handle_request(self, method):
+        """Handle a request."""
         self._handled = False
 
         try:
@@ -106,6 +116,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
                 answer(self, "unhandled request", 500)
 
     def do_POST(self):
+        """Handle a POST request."""
         try:
             self._check_addr()
             self.handle_request("post")
@@ -115,6 +126,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
             logging.exception('failed handling request on "%s"', self.path)
 
     def do_GET(self):
+        """Handle a GET request."""
         try:
             self._check_addr()
             self.handle_request("get")
@@ -123,6 +135,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 def serve(port, whitelist=None):
+    """Serve the replay service on the given port."""
     server_address = ("", port)
     httpd = http.server.ThreadingHTTPServer(server_address, RequestHandler)
     httpd._addr_white_list = whitelist

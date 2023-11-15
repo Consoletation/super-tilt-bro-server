@@ -54,6 +54,7 @@ def _elo(player_mmr, opponent_mmr, score):
 
 
 def _sync_db():
+    """Synchronize the database with the file."""
     global _db_file, ranking_db
     if _db_file is not None:
         tmp_db_path = f"{_db_file}.tmp"
@@ -63,6 +64,7 @@ def _sync_db():
 
 
 def _get_user_id(timepoint, connection_id):
+    """Get the user ID associated with the given connection ID."""
     # TODO should ask the login server for the association timepoint+connection_id to user_id
     #     For now user_id == connection_id, let's assume it
     #     just convert it to hex string type (to be a valid json property name)
@@ -70,6 +72,7 @@ def _get_user_id(timepoint, connection_id):
 
 
 def _get_user_name(user_id):
+    """Get the user name associated with the given user ID."""
     user_id_int = int(user_id, 16)
     resp = requests.get(
         "http://{}:{}/api/login/user_name/{}".format(
@@ -96,6 +99,7 @@ def _get_user_name(user_id):
 
 
 def load(db_file, login_server):
+    """Load the database from the given file."""
     global _db_file, _login_server, ranking_db
 
     _db_file = db_file
@@ -107,6 +111,7 @@ def load(db_file, login_server):
 
 
 def push_games(games_info):
+    """Push the given games info to the database."""
     global ranking_db
 
     # Update rankings
@@ -173,6 +178,7 @@ def push_games(games_info):
 
 
 def get_ladder():
+    """Get the current ladder."""
     global ranking_db
     users = ranking_db["users"]
 

@@ -67,6 +67,7 @@ STNP_LOGIN_CHARSET = [
 
 
 def logged_in_msg(client_id, login_type):
+    """Return a logged in message."""
     res = bytearray(7)
     res[0] = STNP_LOGIN_MSG_TYPE
     res[1] = STNP_LOGIN_FROM_SERVER_LOGGED_IN
@@ -79,6 +80,7 @@ def logged_in_msg(client_id, login_type):
 
 
 def login_failed_msg(message):
+    """Return a login failed message."""
     MESSAGE_LEN = 72
     assert len(message) == MESSAGE_LEN
 
@@ -93,7 +95,10 @@ def login_failed_msg(message):
 
 
 def parse_login_request(message):
+    """Parse a login request."""
+
     def parse_stnp_str(offset):
+        """Parse a STNP string."""
         value = ""
         for i in range(offset, offset + 16):
             c = message[i]
@@ -124,6 +129,7 @@ def parse_login_request(message):
 
 
 def check_login_request(message):
+    """Check a login request."""
     # Parse message
     client_credential = parse_login_request(message)
 
@@ -150,12 +156,14 @@ def check_login_request(message):
 
 
 def handle_msg_login_anonymous(message, client_addr, sock):
+    """Handle a login anonymous message."""
     # Log the user with a fresh anonymous ID
     client_id = logindb.get_anonymous_id()
     sock.sendto(logged_in_msg(client_id, STNP_LOGIN_ANONYMOUS), client_addr)
 
 
 def handle_msg_login_password(message, client_addr, sock):
+    """Handle a login password message."""
     # Parse message
     parsed_message = check_login_request(message)
     if not parsed_message[0]:
@@ -193,6 +201,7 @@ def handle_msg_login_password(message, client_addr, sock):
 
 
 def handle_msg_create_account(message, client_addr, sock):
+    """Handle a create account message."""
     # Parse message
     parsed_message = check_login_request(message)
     if not parsed_message[0]:
@@ -243,6 +252,7 @@ def handle_msg_create_account(message, client_addr, sock):
 
 
 def serve(listen_port):
+    """Serve login requests."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("", listen_port))
     while True:
