@@ -483,38 +483,13 @@ std::string usage() {
 	;
 }
 
-int main(int argc, char** argv) {
-	// Parse command line
-	std::filesystem::path savestate_data_dir;
-	std::string bmov_path = "/tmp/replay.bmov";
-	uint8_t character_1_palette = 0; // NOTE: char palettes from bmov take precedence over command-line (unnatural, and to be changed if there is a need)
-	uint8_t character_2_palette = 1;
-	{
-		args::Args params = args::parse(argc, argv, {"--palette-a", "--palette-b"});
-		if (params.flags.count("-h") || params.flags.count("--help")) {
-			std::cout << usage();
-			return 0;
-		}
-		if (params.positional.size() > 1) {
-			std::cerr << usage();
-			return 1;
-		}
-
-		savestate_data_dir = std::filesystem::path(argv[0]);
-		savestate_data_dir = savestate_data_dir.remove_filename() / "bmov_to_fm2_data";
-
-		if (params.positional.size() > 0) {
-			bmov_path = params.positional[0];
-		}
-
-		if (params.values.count("--palette-a")) {
-			character_1_palette = args::lex_cast<unsigned int>(params.values.at("--palette-a"));
-		}
-		if (params.values.count("--palette-b")) {
-			character_2_palette = args::lex_cast<unsigned int>(params.values.at("--palette-b"));
-		}
-	}
-
+int bmov_to_fm2(
+	const std::filesystem::path& savestate_data_dir,
+	const std::string& bmov_path,
+	uint8_t character_1_palette,
+	uint8_t character_2_palette
+)
+{
 	// Parse bmov file
 	std::map<uint32_t, GameState::ControllerState> controller_a_history;
 	std::map<uint32_t, GameState::ControllerState> controller_b_history;
@@ -667,4 +642,38 @@ int main(int argc, char** argv) {
 	}
 
 	return 0;
+}
+
+int main(int argc, char** argv) {
+	// Parse command line
+	std::filesystem::path savestate_data_dir;
+	std::string bmov_path = "/tmp/replay.bmov";
+	uint8_t character_1_palette = 0; // NOTE: char palettes from bmov take precedence over command-line (unnatural, and to be changed if there is a need)
+	uint8_t character_2_palette = 1;
+	{
+		args::Args params = args::parse(argc, argv, {"--palette-a", "--palette-b"});
+		if (params.flags.count("-h") || params.flags.count("--help")) {
+			std::cout << usage();
+			return 0;
+		}
+		if (params.positional.size() > 1) {
+			std::cerr << usage();
+			return 1;
+		}
+
+		savestate_data_dir = std::filesystem::path(argv[0]);
+		savestate_data_dir = savestate_data_dir.remove_filename() / "bmov_to_fm2_data";
+
+		if (params.positional.size() > 0) {
+			bmov_path = params.positional[0];
+		}
+
+		if (params.values.count("--palette-a")) {
+			character_1_palette = args::lex_cast<unsigned int>(params.values.at("--palette-a"));
+		}
+		if (params.values.count("--palette-b")) {
+			character_2_palette = args::lex_cast<unsigned int>(params.values.at("--palette-b"));
+		}
+	}
+	return bmov_to_fm2(savestate_data_dir, bmov_path, character_1_palette, character_2_palette);
 }
