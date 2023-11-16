@@ -32,6 +32,11 @@ dependencies = [
 repository = "https://github.com/sgadrat/super-tilt-bro-server"
 tracker = "https://github.com/sgadrat/super-tilt-bro-server/issues"
 
+[project.scripts]
+stb-login-server = "login_server.cli:main"
+stb-ranking-server = "ranking_server.cli:main"
+stb-replay-server = "replay_server.cli:main"
+
 [build-system]
 requires = [
     'setuptools>=45',
