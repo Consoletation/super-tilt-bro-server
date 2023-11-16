@@ -17,6 +17,14 @@
 #include <uuid/uuid.h>
 #include <vector>
 
+// Include pybind11 headers only if PYBIND11 is defined
+#ifdef PYBIND11
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/stl/filesystem.h>
+namespace py = pybind11;
+#endif
+
 // g++ -std=c++17 -O3 -DNDEBUG -flto bmov_to_fm2.cpp ../src/GameState.cpp -I ../src -I .. -luuid -lz -o bmov_to_fm2
 // # May need -lstdc++fs on older distribs
 
@@ -677,3 +685,10 @@ int main(int argc, char** argv) {
 	}
 	return bmov_to_fm2(savestate_data_dir, bmov_path, character_1_palette, character_2_palette);
 }
+
+#ifdef PYBIND11
+PYBIND11_MODULE(bmov_to_fm2, m) {
+	m.doc() = "Converts a bmov file to a fm2 file";
+	m.def("convert_bmov_to_fm2", &bmov_to_fm2, "Converts a bmov file to a fm2 file");
+}
+#endif
