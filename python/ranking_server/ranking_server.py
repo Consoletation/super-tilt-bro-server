@@ -4,88 +4,99 @@
 
 from __future__ import annotations
 
-import argparse
 import logging
-import sys
+from pathlib import Path
+
+import click
 
 from . import rankingdb, restservice
 
 # Parameters' default
 LISTEN_PORT_REST = 8123
-RANKING_DB_FILE = "/var/lib/stb/ranking_server_db.json"
-LOG_FILE = "/var/log/stb/ranking_server.log"
+RANKING_DB_FILE = Path("/var/lib/stb/ranking_server_db.json")
+LOG_FILE = Path("/var/log/stb/ranking_server.log")
 LOG_LEVEL = "info"
 CLIENTS_WHITE_LIST = "127.0.0.1"
 LOGIN_SERVER_ADDR = "127.0.0.1"
 LOGIN_SERVER_PORT = 8124
 
-# Parse command line
-parser = argparse.ArgumentParser(description="Ranking server for Super Tilt Bro.")
-parser.add_argument(
+
+@click.command()
+@click.option(
     "--rest-port",
     type=int,
     default=LISTEN_PORT_REST,
-    help=f"port listening for REST requests (default: {LISTEN_PORT_REST})",
+    help="port listening for REST requests",
 )
-parser.add_argument(
+@click.option(
     "--db-file",
-    type=str,
+    type=Path,
     default=RANKING_DB_FILE,
-    help=f"file storing persistant ranking info, empty for no file (default: {RANKING_DB_FILE})",
+    help="file storing persistant ranking info, empty for no file",
 )
-parser.add_argument(
+@click.option(
     "--white-list",
     type=str,
     default=CLIENTS_WHITE_LIST,
-    help=f"comma-separated list of IP addresses of authorised clients (default: {CLIENTS_WHITE_LIST})",
+    help="comma-separated list of IP addresses of authorised clients",
 )
-parser.add_argument(
+@click.option(
     "--login-srv-addr",
     type=str,
     default=LOGIN_SERVER_ADDR,
-    help=f"address of the login server (default: {LOGIN_SERVER_ADDR})",
+    help="address of the login server",
 )
-parser.add_argument(
+@click.option(
     "--login-srv-port",
     type=int,
     default=LOGIN_SERVER_PORT,
-    help=f"port of the login server's REST API  (default: {LOGIN_SERVER_PORT})",
+    help="port of the login server's REST API",
 )
-parser.add_argument(
+@click.option(
     "--log-file",
-    type=str,
+    type=Path,
     default=LOG_FILE,
-    help=f"logs destination, empty for stderr (default: {LOG_FILE})",
+    help="logs destination, empty for stderr",
 )
-parser.add_argument(
+@click.option(
     "--log-level",
-    type=str,
+    type=click.Choice(["debug", "info", "warning", "error", "critical"]),
     default=LOG_LEVEL,
-    help=f"minimal severity of logs [debug, info, warning, error, critical] (default: {LOG_LEVEL})",
+    help="minimal severity of logs [debug, info, warning, error, critical]",
 )
-args = parser.parse_args()
+def main(
+    rest_port: int,
+    db_file: Path,
+    white_list: str,
+    login_srv_addr: str,
+    login_srv_port: int,
+    log_file: Path,
+    log_level: str,
+):
+    """Launch the ranking server."""
+    # Configure logging
+    if log_file.is_dir():
+        log_file = log_file / "ranking_server.log"
+    logging.basicConfig(
+        format="[%(asctime)s] %(levelname)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S %Z",
+        filename=log_file,
+        level=getattr(logging, log_level.upper()),
+    )
 
-login_server = {
-    "addr": args.login_srv_addr,
-    "port": args.login_srv_port,
-}
-db_file = args.db_file if args.db_file != "" else None
-clients_white_list = args.white_list.split(",")
+    login_server = {
+        "addr": login_srv_addr,
+        "port": login_srv_port,
+    }
+    db_file = db_file if db_file != "" else None
+    clients_white_list = white_list.split(",")
 
-if args.log_level not in ["debug", "info", "warning", "error", "critical"]:
-    sys.stderr.write("invalid debug level\n")
-    sys.exit(1)
+    # Initialize ranking database
+    rankingdb.load(db_file, login_server)
 
-# Configure logging
-logging.basicConfig(
-    format="[%(asctime)s] %(levelname)s %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S %Z",
-    filename=args.log_file if args.log_file != "" else None,
-    level=getattr(logging, args.log_level.upper()),
-)
+    # Start serving REST requests
+    restservice.serve(rest_port, whitelist=clients_white_list)
 
-# Initialize ranking database
-rankingdb.load(db_file, login_server)
 
-# Start serving REST requests
-restservice.serve(args.rest_port, whitelist=clients_white_list)
+if __name__ == "__main__":
+    main()

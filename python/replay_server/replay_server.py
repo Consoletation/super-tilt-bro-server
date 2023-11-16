@@ -4,99 +4,107 @@
 
 from __future__ import annotations
 
-import argparse
 import logging
-import os.path
 import subprocess
 import sys
+from pathlib import Path
+
+import click
 
 from . import replaydb, restservice
 
 # Parameters' default
 LISTEN_PORT_REST = 8125
-DB_FILE = "/var/lib/stb/replay_server/db.json"
-REPLAY_DIR = "/var/lib/stb/replay_server"
+DB_FILE = Path("/var/lib/stb/replay_server/db.json")
+REPLAY_DIR = Path("/var/lib/stb/replay_server")
 BMOV_TO_FM2 = "bmov_to_fm2"
-LOG_FILE = "/var/log/stb/replay_server.log"
+LOG_FILE = Path("/var/log/stb/replay_server.log")
 LOG_LEVEL = "info"
 CLIENTS_WHITE_LIST = "127.0.0.1"
 
-# Parse command line
-parser = argparse.ArgumentParser(description="Replay server for Super Tilt Bro.")
-parser.add_argument(
+
+@click.command()
+@click.option(
     "--rest-port",
     type=int,
     default=LISTEN_PORT_REST,
-    help=f"port listening for REST requests (default: {LISTEN_PORT_REST})",
+    help="port listening for REST requests",
 )
-parser.add_argument(
+@click.option(
     "--db-file",
-    type=str,
+    type=Path,
     default=DB_FILE,
-    help=f"file storing persistant info, empty for no file (default: {DB_FILE})",
+    help="file storing persistant info, empty for no file",
 )
-parser.add_argument(
+@click.option(
     "--replay-dir",
-    type=str,
+    type=Path,
     default=REPLAY_DIR,
-    help=f"directory to store replay files (default: {REPLAY_DIR})",
+    help="directory to store replay files",
 )
-parser.add_argument(
+@click.option(
     "--bmov-to-fm2",
-    type=str,
+    type=Path,
     default=BMOV_TO_FM2,
-    help=f"replay conversion utility, absolute or in PATH (default: {BMOV_TO_FM2})",
+    help="replay conversion utility, absolute or in PATH",
 )
-parser.add_argument(
+@click.option(
     "--white-list",
     type=str,
     default=CLIENTS_WHITE_LIST,
-    help=f"comma-separated list of IP addresses of authorised clients (default: {CLIENTS_WHITE_LIST})",
+    help="comma-separated list of IP addresses of authorised clients",
 )
-parser.add_argument(
+@click.option(
     "--log-file",
-    type=str,
+    type=Path,
     default=LOG_FILE,
-    help=f"logs destination, empty for stderr (default: {LOG_FILE})",
+    help="logs destination, empty for stderr",
 )
-parser.add_argument(
+@click.option(
     "--log-level",
-    type=str,
+    type=click.Choice(["debug", "info", "warning", "error", "critical"]),
     default=LOG_LEVEL,
-    help=f"minimal severity of logs [debug, info, warning, error, critical] (default: {LOG_LEVEL})",
+    help="minimal severity of logs [debug, info, warning, error, critical]",
 )
-args = parser.parse_args()
+def main(
+    rest_port: int,
+    db_file: Path,
+    replay_dir: Path,
+    bmov_to_fm2: Path,
+    white_list: str,
+    log_file: Path,
+    log_level: str,
+):
+    """Launch the replay server."""
+    clients_white_list = white_list.split(",")
 
-db_file = args.db_file if args.db_file != "" else None
-replay_dir = args.replay_dir
-bmov_to_fm2 = args.bmov_to_fm2
-clients_white_list = args.white_list.split(",")
+    if not bmov_to_fm2.is_file():
+        res = subprocess.run(["which", bmov_to_fm2], encoding="utf-8")
+        if res.returncode != 0:
+            logging.error('unable to find replay converter "%s"', bmov_to_fm2)
+            sys.exit(1)
+        bmov_to_fm2 = res.stdout.rstrip("\r\n")
 
-if args.log_level not in ["debug", "info", "warning", "error", "critical"]:
-    sys.stderr.write("invalid debug level\n")
-    sys.exit(1)
-
-if not os.path.isfile(bmov_to_fm2):
-    res = subprocess.run(["which", bmov_to_fm2], encoding="utf-8")
-    if res.returncode != 0:
-        logging.error('unable to find replay converter "%s"', bmov_to_fm2)
+    if not replay_dir.is_dir():
+        logging.error('invalid replay directory: "%s"', replay_dir)
         sys.exit(1)
-    bmov_to_fm2 = res.stdout.rstrip("\r\n")
 
-if not os.path.isdir(replay_dir):
-    logging.error('invalid replay directory: "%s"', replay_dir)
-    sys.exit(1)
+    # Configure logging
+    if log_file.is_dir():
+        log_file = log_file / "replay_server.log"
+    logging.basicConfig(
+        format="[%(asctime)s] %(levelname)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S %Z",
+        filename=log_file,
+        level=getattr(logging, log_level.upper()),
+    )
 
-# Configure logging
-logging.basicConfig(
-    format="[%(asctime)s] %(levelname)s %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S %Z",
-    filename=args.log_file if args.log_file != "" else None,
-    level=getattr(logging, args.log_level.upper()),
-)
+    # Initialize database
+    replaydb.load(db_file, replay_dir, bmov_to_fm2)
 
-# Initialize database
-replaydb.load(db_file, replay_dir, bmov_to_fm2)
+    # Start serving REST requests
+    restservice.serve(rest_port, whitelist=clients_white_list)
 
-# Start serving REST requests
-restservice.serve(args.rest_port, whitelist=clients_white_list)
+
+if __name__ == "__main__":
+    main()

@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import json
-import os.path
 import threading
+from pathlib import Path
 
 #
 # Working structures
 #
 
-_db_file = None
+_db_file: Path | None = None
 _db_mutex = threading.Lock()
 
 user_db = {
@@ -37,10 +37,10 @@ def _sync_db() -> None:
     """Synchronize the database with the file."""
     global _db_file, user_db
     if _db_file is not None:
-        tmp_db_path = f"{_db_file}.tmp"
-        with open(tmp_db_path, "w") as tmp_db:
+        tmp_db_path = Path(f"{_db_file}.tmp")
+        with tmp_db_path.open("w") as tmp_db:
             json.dump(user_db, tmp_db)
-        os.replace(tmp_db_path, _db_file)
+        tmp_db_path.replace(_db_file)
 
 
 #
@@ -48,14 +48,16 @@ def _sync_db() -> None:
 #
 
 
-def load(db_file) -> None:
+def load(db_file: str | Path | None) -> None:
     """Load the database from the given file."""
     global _db_file, _db_mutex, user_db
+    if isinstance(db_file, str):
+        db_file = Path(db_file)
     with _db_mutex:
         _db_file = db_file
 
-        if db_file is not None and os.path.isfile(db_file):
-            with open(db_file) as f:
+        if db_file is not None and db_file.is_file():
+            with db_file.open() as f:
                 user_db = json.load(f)
 
 

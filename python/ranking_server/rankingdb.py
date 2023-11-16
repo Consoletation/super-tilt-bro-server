@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 import json
 import logging
-import os.path
+from pathlib import Path
 
 import requests
 
@@ -13,7 +13,7 @@ import requests
 # Working structures
 #
 
-_db_file = None
+_db_file: Path | None = None
 _login_server = None
 
 ranking_db = {
@@ -53,14 +53,14 @@ def _elo(player_mmr, opponent_mmr, score):
 #
 
 
-def _sync_db():
+def _sync_db() -> None:
     """Synchronize the database with the file."""
     global _db_file, ranking_db
     if _db_file is not None:
-        tmp_db_path = f"{_db_file}.tmp"
-        with open(tmp_db_path, "w") as tmp_db:
+        tmp_db_path = Path(f"{_db_file}.tmp")
+        with tmp_db_path.open("w") as tmp_db:
             json.dump(ranking_db, tmp_db)
-        os.replace(tmp_db_path, _db_file)
+        tmp_db_path.replace(_db_file)
 
 
 def _get_user_id(timepoint, connection_id):
@@ -98,13 +98,14 @@ def _get_user_name(user_id):
 #
 
 
-def load(db_file, login_server):
+def load(db_file: str | Path | None, login_server: dict | None = None) -> None:
     """Load the database from the given file."""
     global _db_file, _login_server, ranking_db
-
+    if isinstance(db_file, str):
+        db_file = Path(db_file)
     _db_file = db_file
-    if db_file is not None and os.path.isfile(db_file):
-        with open(db_file) as f:
+    if db_file is not None and db_file.is_file():
+        with db_file.open() as f:
             ranking_db = json.load(f)
 
     _login_server = copy.deepcopy(login_server)

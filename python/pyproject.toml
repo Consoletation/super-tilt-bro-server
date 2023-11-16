@@ -22,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
+    "Click>=7.1.2",
     "fastapi>=0.104.1",
     "requests>=2.25",
     "uvicorn>=0.24.0",

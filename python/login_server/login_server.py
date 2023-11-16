@@ -4,72 +4,79 @@
 
 from __future__ import annotations
 
-import argparse
 import logging
-import sys
+from pathlib import Path
+
+import click
 
 from . import logindb, restservice
 
 # Parameters' default
 LISTEN_PORT_UDP = 0x1234
 LISTEN_PORT_REST = 8124
-LOGIN_DB_FILE = "/var/lib/stb/login_server_db.json"
-LOG_FILE = "/var/log/stb/login_server.log"
+LOGIN_DB_FILE = Path("/var/lib/stb/login_server_db.json")
+LOG_FILE = Path("/var/log/stb/login_server.log")
 LOG_LEVEL = "info"
 
-# Parse command line
-parser = argparse.ArgumentParser(
-    description="Authentication server for Super Tilt Bro.",
-)
-parser.add_argument(
+
+@click.command()
+@click.option(
     "--udp-port",
     type=int,
     default=LISTEN_PORT_UDP,
-    help=f"port listening for UDP requests (default: {LISTEN_PORT_UDP})",
+    help="port listening for UDP requests",
 )
-parser.add_argument(
+@click.option(
     "--rest-port",
     type=int,
     default=LISTEN_PORT_REST,
-    help=f"port listening for REST requests (default: {LISTEN_PORT_REST})",
+    help="port listening for REST requests",
 )
-parser.add_argument(
+@click.option(
     "--db-file",
-    type=str,
+    type=Path,
     default=LOGIN_DB_FILE,
-    help=f"file storing persistant login info, empty for no file (default: {LOGIN_DB_FILE})",
+    help="file storing persistant login info, empty for no file",
 )
-parser.add_argument(
+@click.option(
     "--log-file",
-    type=str,
+    type=Path,
     default=LOG_FILE,
-    help=f"logs destination, empty for stderr (default: {LOG_FILE})",
+    help="logs destination, empty for stderr",
 )
-parser.add_argument(
+@click.option(
     "--log-level",
-    type=str,
+    type=click.Choice(["debug", "info", "warning", "error", "critical"]),
     default=LOG_LEVEL,
-    help=f"minimal severity of logs [debug, info, warning, error, critical] (default: {LOG_LEVEL})",
+    help="minimal severity of logs [debug, info, warning, error, critical]",
 )
-args = parser.parse_args()
+def main(
+    udp_port: int,
+    rest_port: int,
+    db_file: str,
+    log_file: Path,
+    log_level: str,
+):
+    """Launch the login server."""
+    # Configure logging
+    if log_file.is_dir():
+        log_file = log_file / "login_server.log"
+    logging.basicConfig(
+        format="[%(asctime)s] %(levelname)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S %Z",
+        filename=log_file,
+        level=getattr(logging, log_level.upper()),
+    )
 
-if args.log_level not in ["debug", "info", "warning", "error", "critical"]:
-    sys.stderr.write("invalid debug level\n")
-    sys.exit(1)
+    # Initialize login database
+    logindb.load(db_file if db_file != "" else None)
 
-# Configure logging
-logging.basicConfig(
-    format="[%(asctime)s] %(levelname)s %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S %Z",
-    filename=args.log_file if args.log_file != "" else None,
-    level=getattr(logging, args.log_level.upper()),
-)
+    # Start serving UDP and REST requests
+    restservice.serve(
+        rest_port,
+        udp_port,
+    )
 
-# Initialize login database
-logindb.load(args.db_file if args.db_file != "" else None)
 
-# Start serving UDP and REST requests
-restservice.serve(
-    args.rest_port,
-    args.udp_port,
-)
+if __name__ == "__main__":
+    main()
