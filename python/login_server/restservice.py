@@ -2,127 +2,37 @@
 
 from __future__ import annotations
 
-import http.server
-import json
-import logging
-import re
+from fastapi import FastAPI, HTTPException, Request
 
 from . import logindb
 
-#
-# Configurable constants
-#
-
-RE_URL_PATTERN = re.compile("^/api/login/(?P<req>[^/]+)(?P<params>/.*)$")
-
-#
-# Utils
-#
+app = FastAPI()
 
 
-class AuthError(Exception):
-    """Raised when the client is not authorized to perform the request."""
+@app.middleware("http")
+async def check_addr(request: Request, call_next):
+    """Check if the request is from a whitelisted address."""
+    if request.client.host not in app.state.addr_white_list:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    return await call_next(request)
 
 
-class InvalidRequest(Exception):
-    """Raised when the request is invalid."""
-
-
-def answer(request, message, code=200):
-    """Answer the request with the given message and code."""
-    request.send_response(code)
-    request.end_headers()
-    request.wfile.write(bytes(json.dumps(message), "utf-8"))
-    request._handled = True
-
-
-def success(request, message):
-    """Answer the request with the given message and code 200."""
-    answer(request, message, 200)
-
-
-#
-# Public API
-#
-
-
-def get_user_name(request, url_params):
-    """Get the name of the user with the given ID."""
-    logging.debug('get_user_name: "%s"', url_params)
-    if len(url_params) == 1:
-        user_id = int(url_params[0])
+@app.get("/api/login/user_name/{user_id}")
+async def get_user_name(user_id: int) -> str:
+    """Return the user name for the given user ID."""
+    try:
         user_name = logindb.get_user_name(user_id)
-        success(request, user_name)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
-
-#
-# Server logic
-#
-
-
-class RequestHandler(http.server.BaseHTTPRequestHandler):
-    """Request handler for the login service."""
-
-    def _check_addr(self):
-        """Check that the client address is allowed to perform the request."""
-        if (
-            self.server._addr_white_list is not None
-            and self.client_address[0] not in self.server._addr_white_list
-        ):
-            raise AuthError
-
-    @staticmethod
-    def log_request(code="-", size="-"):
-        """Suppress logging of requests."""
-
-    def handle_request(self, method):
-        """Handle the request."""
-        self._handled = False
-
-        try:
-            m = RE_URL_PATTERN.match(self.path)
-            if m is None:
-                raise InvalidRequest("bad path")
-
-            handler_func_name = "{}_{}".format(method, m.group("req"))
-            url_params = (
-                m.group("params")[1:].split("/") if len(m.group("params")) > 1 else []
-            )
-
-            if handler_func_name not in globals():
-                raise InvalidRequest("bad endpoint")
-
-            handler_func = globals()[handler_func_name]
-            handler_func(self, url_params)
-        except InvalidRequest as e:
-            if not self._handled:
-                answer(self, f"invalid request: {e}", 400)
-        finally:
-            if not self._handled:
-                answer(self, "unhandled request", 500)
-
-    def do_POST(self):
-        """Handle a POST request."""
-        try:
-            self._check_addr()
-            self.handle_request("post")
-        except AuthError:
-            pass
-        except Exception:
-            logging.exception('failed handling request on "%s"', self.path)
-
-    def do_GET(self):
-        """Handle a GET request."""
-        try:
-            self._check_addr()
-            self.handle_request("get")
-        except AuthError:
-            pass
+    if user_name is None:
+        raise HTTPException(status_code=404, detail="User ID not found")
+    return user_name
 
 
 def serve(port, whitelist=None):
     """Serve the login service on the given port."""
-    server_address = ("", port)
-    httpd = http.server.ThreadingHTTPServer(server_address, RequestHandler)
-    httpd._addr_white_list = whitelist
-    httpd.serve_forever()
+    import uvicorn
+
+    app.state.addr_white_list = whitelist
+    uvicorn.run(app, host="0.0.0.0", port=port)

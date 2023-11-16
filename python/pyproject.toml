@@ -22,7 +22,9 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
+    "fastapi>=0.104.1",
     "requests>=2.25",
+    "uvicorn>=0.24.0",
 ]
 
 [project.urls]

@@ -110,7 +110,7 @@ def load(db_file, login_server):
     _login_server = copy.deepcopy(login_server)
 
 
-def push_games(games_info):
+def push_games(games_info: list[dict]) -> None:
     """Push the given games info to the database."""
     global ranking_db
 
@@ -177,7 +177,7 @@ def push_games(games_info):
     _sync_db()
 
 
-def get_ladder():
+def get_ladder() -> list[dict]:
     """Get the current ladder."""
     global ranking_db
     users = ranking_db["users"]

@@ -63,7 +63,7 @@ def load(db_file, replay_dir, bmov_to_fm2):
             replay_db = json.load(f)
 
 
-def push_games(games_info):
+def push_games(games_info: list[dict]) -> None:
     """Push the given games info to the database."""
     global replay_db, _replay_dir, _bmov_to_fm2
 
@@ -132,7 +132,7 @@ def push_games(games_info):
     _sync_db()
 
 
-def get_games_list():
+def get_games_list() -> list[dict]:
     """Return the list of the last 50 games."""
     global replay_db
     return sorted(
@@ -141,7 +141,7 @@ def get_games_list():
     )[-50:]
 
 
-def get_fm2(game):
+def get_fm2(game: str) -> str:
     """Return the fm2 file for the given game."""
     with open(get_fm2_path(game)) as fm2_file:
         return fm2_file.read()

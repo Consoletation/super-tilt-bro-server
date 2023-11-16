@@ -2,61 +2,43 @@
 
 from __future__ import annotations
 
-import http.server
-import json
-import logging
+from fastapi import FastAPI, HTTPException, Request
 
 from . import rankingdb
 
-
-class AuthError(Exception):
-    """Raised when the client is not authorized to perform the request."""
+app = FastAPI()
 
 
-class RequestHandler(http.server.BaseHTTPRequestHandler):
-    """Request handler for the ranking service."""
-
-    def _check_addr(self):
-        """Check that the client address is authorized."""
-        if self.client_address[0] not in self.server._addr_white_list:
-            raise AuthError
-
-    @staticmethod
-    def log_request(code="-", size="-"):
-        """Suppress logging of requests."""
-
-    def do_POST(self):
-        """Handle a POST request."""
-        try:
-            self._check_addr()
-            if self.path == "/api/rankings" and "Content-Length" in self.headers:
-                data = self.rfile.read(int(self.headers["Content-Length"]))
-                msg = json.loads(data)
-                rankingdb.push_games(msg)
-
-                self.send_response(200)
-                self.end_headers()
-                self.wfile.write(b'{"status": "ok"}')
-        except AuthError:
-            pass
-        except Exception:
-            logging.exception('failed handling request on "%s"', self.path)
-
-    def do_GET(self):
-        """Handle a GET request."""
-        try:
-            self._check_addr()
-            if self.path == "/api/rankings":
-                self.send_response(200)
-                self.end_headers()
-                self.wfile.write(bytes(json.dumps(rankingdb.get_ladder()), "utf-8"))
-        except AuthError:
-            pass
+@app.middleware("http")
+async def check_addr(request: Request, call_next):
+    """Check if the request is from a whitelisted address."""
+    if request.client.host not in app.state.addr_white_list:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    return await call_next(request)
 
 
-def serve(port, whitelist):
+@app.post("/api/rankings")
+async def post_rankings(msg: list[dict]) -> dict:
+    """Push a list of games to the ranking service."""
+    try:
+        rankingdb.push_games(msg)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+    return {"status": "ok"}
+
+
+@app.get("/api/rankings")
+async def get_rankings():
+    """Get the current rankings."""
+    try:
+        return rankingdb.get_ladder()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+def serve(port, whitelist=None):
     """Serve the ranking service on the given port."""
-    server_address = ("", port)
-    httpd = http.server.ThreadingHTTPServer(server_address, RequestHandler)
-    httpd._addr_white_list = whitelist
-    httpd.serve_forever()
+    import uvicorn
+
+    app.state.addr_white_list = whitelist
+    uvicorn.run(app, host="0.0.0.0", port=port)

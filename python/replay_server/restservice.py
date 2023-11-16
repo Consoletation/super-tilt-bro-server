@@ -2,141 +2,55 @@
 
 from __future__ import annotations
 
-import http.server
-import json
-import logging
-import re
+from fastapi import FastAPI, HTTPException, Request, Response
 
 from . import replaydb
 
-#
-# Configurable constants
-#
-
-RE_URL_PATTERN = re.compile("^/api/replay/(?P<req>[^/]+)(?P<params>/.*)$")
-
-#
-# Utils
-#
+app = FastAPI()
 
 
-class AuthError(Exception):
-    """Raised when the client is not authorized to perform the request."""
+@app.middleware("http")
+async def check_addr(request: Request, call_next):
+    """Check if the client is authorized to perform the request."""
+    if request.client.host not in app.state.addr_white_list:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    return await call_next(request)
 
 
-class InvalidRequest(Exception):
-    """Raised when the request is invalid."""
-
-
-def answer(request, message, code=200):
-    """Answer the request with the given message and code."""
-    request.send_response(code)
-    request.end_headers()
-    request.wfile.write(bytes(json.dumps(message), "utf-8"))
-    request._handled = True
-
-
-def success(request, message):
-    """Answer the request with the given message and code 200."""
-    answer(request, message, 200)
-
-
-def read_msg(request):
-    """Read the message from the request."""
-    if "Content-Length" in request.headers:
-        data = request.rfile.read(int(request.headers["Content-Length"]))
-        return json.loads(data)
-    raise InvalidRequest("cannot read message")
-
-
-#
-# Public API
-#
-
-
-def post_games(request, url_params):
+@app.post("/api/replay/games")
+async def post_games(games: list[dict]):
     """Push the given games info to the database."""
-    replaydb.push_games(read_msg(request))
-    success(request, {"status": "ok"})
+    try:
+        replaydb.push_games(games)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+    return {"status": "ok"}
 
 
-def get_games(request, url_params):
+@app.get("/api/replay/games")
+async def get_games() -> list[dict]:
     """Get the list of games."""
-    if len(url_params) == 0:
-        success(request, replaydb.get_games_list())
-    elif len(url_params) == 1:
-        game = url_params[0]
-        success(request, replaydb.get_fm2(game))
+    try:
+        return replaydb.get_games_list()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-#
-# Server logic
-#
-
-
-class RequestHandler(http.server.BaseHTTPRequestHandler):
-    """Request handler for the replay service."""
-
-    def _check_addr(self):
-        """Check that the client address is allowed to perform the request."""
-        if (
-            self.server._addr_white_list is not None
-            and self.client_address[0] not in self.server._addr_white_list
-        ):
-            raise AuthError
-
-    @staticmethod
-    def log_request(code="-", size="-"):
-        """Suppress logging of requests."""
-
-    def handle_request(self, method):
-        """Handle a request."""
-        self._handled = False
-
-        try:
-            m = RE_URL_PATTERN.match(self.path)
-            if m is None:
-                raise InvalidRequest("bad path")
-
-            handler_func_name = "{}_{}".format(method, m.group("req"))
-            url_params = (
-                m.group("params")[1:].split("/") if len(m.group("params")) > 1 else []
-            )
-
-            if handler_func_name not in globals():
-                raise InvalidRequest("bad endpoint")
-
-            handler_func = globals()[handler_func_name]
-            handler_func(self, url_params)
-        except InvalidRequest as e:
-            if not self._handled:
-                answer(self, f"invalid request: {e}", 400)
-        finally:
-            if not self._handled:
-                answer(self, "unhandled request", 500)
-
-    def do_POST(self):
-        """Handle a POST request."""
-        try:
-            self._check_addr()
-            self.handle_request("post")
-        except AuthError:
-            pass
-        except Exception:
-            logging.exception('failed handling request on "%s"', self.path)
-
-    def do_GET(self):
-        """Handle a GET request."""
-        try:
-            self._check_addr()
-            self.handle_request("get")
-        except AuthError:
-            pass
+@app.get("/api/replay/games/{game}")
+async def get_game(game: str) -> str:
+    """Get a specific game."""
+    try:
+        game_data = replaydb.get_fm2(game.rstrip(".fm2"))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+    if game_data is None:
+        raise HTTPException(status_code=404, detail="Game not found")
+    return Response(content=game_data, media_type="application/x-fceux-movie")
 
 
 def serve(port, whitelist=None):
     """Serve the replay service on the given port."""
-    server_address = ("", port)
-    httpd = http.server.ThreadingHTTPServer(server_address, RequestHandler)
-    httpd._addr_white_list = whitelist
-    httpd.serve_forever()
+    import uvicorn
+
+    app.state.addr_white_list = whitelist
+    uvicorn.run(app, host="0.0.0.0", port=port)

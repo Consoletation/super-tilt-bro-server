@@ -24,7 +24,7 @@ user_db = {
 #
 
 
-def _new_registered_user_id():
+def _new_registered_user_id() -> int:
     """Get a new registered user ID."""
     global user_db
     new_id = user_db["next_registered_id"]
@@ -33,7 +33,7 @@ def _new_registered_user_id():
     return new_id
 
 
-def _sync_db():
+def _sync_db() -> None:
     """Synchronize the database with the file."""
     global _db_file, user_db
     if _db_file is not None:
@@ -48,7 +48,7 @@ def _sync_db():
 #
 
 
-def load(db_file):
+def load(db_file) -> None:
     """Load the database from the given file."""
     global _db_file, _db_mutex, user_db
     with _db_mutex:
@@ -59,7 +59,7 @@ def load(db_file):
                 user_db = json.load(f)
 
 
-def get_anonymous_id():
+def get_anonymous_id() -> int:
     """Get a new anonymous user ID."""
     global _db_mutex, user_db
     with _db_mutex:
@@ -69,15 +69,15 @@ def get_anonymous_id():
         return new_id
 
 
-def get_user_info(user_name):
+def get_user_info(username: str) -> dict | None:
     """Get the user info for the given user name."""
-    global _dbg_mutex, user_db
+    global _db_mutex, user_db
     with _db_mutex:
         _sync_db()
-        return user_db["registered_logins"].get(user_name)
+        return user_db["registered_logins"].get(username)
 
 
-def get_user_name(user_id):
+def get_user_name(user_id: int) -> str | None:
     """Get the user name for the given user ID."""
     global _db_mutex, user_db
     with _db_mutex:
@@ -87,12 +87,12 @@ def get_user_name(user_id):
         return None
 
 
-def register_user(user_name, password):
+def register_user(username: str, password: str) -> None:
     """Register a new user."""
     global _db_mutex, user_db
     with _db_mutex:
-        assert user_name not in user_db["registered_logins"]
-        user_db["registered_logins"][user_name] = {
+        assert username not in user_db["registered_logins"]
+        user_db["registered_logins"][username] = {
             "password": password,
             "user_id": _new_registered_user_id(),
         }
