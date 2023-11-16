@@ -7,6 +7,12 @@
 #include <vector>
 #include <zlib.h>
 
+#if defined(__linux__)
+#define bswap_32(x) __bswap_32(x)
+#elif defined(__APPLE__)
+#define bswap_32(x) _OSSwapInt32(x)
+#endif
+
 namespace fcs {
 
 typedef std::map<std::string, std::vector<uint8_t>> Section;
@@ -74,7 +80,7 @@ inline std::vector<uint8_t> serialize_fcsx(Fcsx const& save) {
 		push(section_data, uint32_t(0));
 
 		for (Section::value_type const& subsection : section.second) {
-			push(section_data, __bswap_32(fourcc(subsection.first)));
+			push(section_data, bswap_32(fourcc(subsection.first)));
 			push(section_data, static_cast<uint32_t>(subsection.second.size()));
 			section_data.insert(section_data.end(), subsection.second.begin(), subsection.second.end());
 		}
@@ -97,7 +103,7 @@ inline std::vector<uint8_t> serialize_fcsx(Fcsx const& save) {
 
 	// Write header
 	std::vector<uint8_t> fcsx_data;
-	push(fcsx_data, __bswap_32(fourcc("FCSX")));
+	push(fcsx_data, bswap_32(fourcc("FCSX")));
 	push(fcsx_data, static_cast<uint32_t>(body_data.size()));
 	push(fcsx_data, save.header.version);
 	push(fcsx_data, static_cast<uint32_t>(body_data_compressed.size()));
