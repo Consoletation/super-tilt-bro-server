@@ -6,11 +6,9 @@ from __future__ import annotations
 
 import argparse
 import logging
-import signal
 import sys
-import threading
 
-from . import logindb, restservice, udpservice
+from . import logindb, restservice
 
 # Parameters' default
 LISTEN_PORT_UDP = 0x1234
@@ -70,21 +68,8 @@ logging.basicConfig(
 # Initialize login database
 logindb.load(args.db_file if args.db_file != "" else None)
 
-# Start serving UDP requests
-thread_udp = threading.Thread(
-    target=udpservice.serve, name="udp_service", daemon=True, args=(args.udp_port,)
+# Start serving UDP and REST requests
+restservice.serve(
+    args.rest_port,
+    args.udp_port,
 )
-thread_rest = threading.Thread(
-    target=restservice.serve, name="rest_service", daemon=True, args=(args.rest_port,)
-)
-thread_udp.start()
-thread_rest.start()
-
-# Wait for known signal
-try:
-    # Dumb implementation, wait any signal,
-    # KeyboardInterrupt will break the loop on SIGINT
-    while True:
-        signal.pause()
-except KeyboardInterrupt:
-    pass

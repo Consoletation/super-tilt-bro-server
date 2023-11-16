@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import FastAPI, HTTPException, Request
 
-from . import logindb
+from . import logindb, udpservice
 
 app = FastAPI()
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Start the UDP service."""
+    return asyncio.create_task(udpservice.serve(listen_port=app.state.udp_port))
 
 
 @app.middleware("http")
@@ -30,9 +38,10 @@ async def get_user_name(user_id: int) -> str:
     return user_name
 
 
-def serve(port, whitelist=None):
+def serve(rest_port: int, udp_port: int, whitelist=None):
     """Serve the login service on the given port."""
     import uvicorn
 
+    app.state.udp_port = udp_port
     app.state.addr_white_list = whitelist
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=rest_port)

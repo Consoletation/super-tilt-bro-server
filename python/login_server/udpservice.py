@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
-import socket
+import string
 
 from . import logindb
+
+MESSAGE_LEN = 72
 
 #
 # STNP, login extension
@@ -21,52 +24,19 @@ STNP_LOGIN_PASSWORD = 1
 STNP_LOGIN_CREATE_ACCOUNT = 2
 
 STNP_LOGIN_CHARSET = [
-    None,
-    "a",
-    "b",
-    "c",
-    "d",
-    "e",
-    "f",
-    "g",
-    "h",
-    "i",
-    "j",
-    "k",
-    "l",
-    "m",
-    "n",
-    "o",
-    "p",
-    "q",
-    "r",
-    "s",
-    "t",
-    "u",
-    "v",
-    "w",
-    "x",
-    "y",
-    "z",
     " ",
-    "0",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
+    *string.ascii_lowercase,
+    *string.digits,
+    None,
 ]
+
 
 #
 # Implementation
 #
 
 
-def logged_in_msg(client_id, login_type):
+def logged_in_msg(client_id: int, login_type: int) -> bytes:
     """Return a logged in message."""
     res = bytearray(7)
     res[0] = STNP_LOGIN_MSG_TYPE
@@ -79,9 +49,8 @@ def logged_in_msg(client_id, login_type):
     return bytes(res)
 
 
-def login_failed_msg(message):
+def login_failed_msg(message: str) -> bytes:
     """Return a login failed message."""
-    MESSAGE_LEN = 72
     assert len(message) == MESSAGE_LEN
 
     res = bytearray(MESSAGE_LEN + 2)
@@ -94,7 +63,7 @@ def login_failed_msg(message):
     return res
 
 
-def parse_login_request(message):
+def parse_login_request(message: bytes) -> dict[str, str] | None:
     """Parse a login request."""
 
     def parse_stnp_str(offset):
@@ -128,7 +97,7 @@ def parse_login_request(message):
     return {"user": user, "password": password}
 
 
-def check_login_request(message):
+def check_login_request(message: bytes) -> tuple[bool, dict[str, str] | str]:
     """Check a login request."""
     # Parse message
     client_credential = parse_login_request(message)
@@ -138,40 +107,50 @@ def check_login_request(message):
         return (
             False,
             "missformed user   "
-            + "name or password  "
-            + "                  "
-            + "                  ",
+            "name or password  "
+            "                  "
+            "                  ",
         )
-    elif len(client_credential["user"]) < 3:
+    if len(client_credential["user"]) < 3:
         return (
             False,
             "user name shall   "
-            + "have at least     "
-            + "three characters  "
-            + "                  ",
+            "have at least     "
+            "three characters  "
+            "                  ",
         )
 
     # Return parsed result
     return (True, client_credential)
 
 
-def handle_msg_login_anonymous(message, client_addr, sock):
+def handle_msg_login_anonymous(
+    message: bytes,
+    client_addr: tuple[str, int],
+    sock: asyncio.DatagramTransport,
+):
     """Handle a login anonymous message."""
     # Log the user with a fresh anonymous ID
     client_id = logindb.get_anonymous_id()
     sock.sendto(logged_in_msg(client_id, STNP_LOGIN_ANONYMOUS), client_addr)
 
 
-def handle_msg_login_password(message, client_addr, sock):
+def handle_msg_login_password(
+    message: bytes,
+    client_addr: tuple[str, int],
+    sock: asyncio.DatagramTransport,
+):
     """Handle a login password message."""
     # Parse message
     parsed_message = check_login_request(message)
     if not parsed_message[0]:
+        assert isinstance(parsed_message[1], str)
         sock.sendto(login_failed_msg(parsed_message[1]), client_addr)
         return
     client_credential = parsed_message[1]
 
     # Get client info from DB (register the user if needed)
+    assert isinstance(client_credential, dict)
     client_info = logindb.get_user_info(client_credential["user"])
     if client_info is None:
         logging.info('new user: "%s"', client_credential["user"])
@@ -192,32 +171,38 @@ def handle_msg_login_password(message, client_addr, sock):
         sock.sendto(
             login_failed_msg(
                 "invalid user name "
-                + "or password       "
-                + "                  "
-                + "                  "
+                "or password       "
+                "                  "
+                "                  "
             ),
             client_addr,
         )
 
 
-def handle_msg_create_account(message, client_addr, sock):
+def handle_msg_create_account(
+    message: bytes,
+    client_addr: tuple[str, int],
+    sock: asyncio.DatagramTransport,
+):
     """Handle a create account message."""
     # Parse message
     parsed_message = check_login_request(message)
     if not parsed_message[0]:
+        assert isinstance(parsed_message[1], str)
         sock.sendto(login_failed_msg(parsed_message[1]), client_addr)
         return
     client_credential = parsed_message[1]
 
     # Check that client does not already exists
+    assert isinstance(client_credential, dict)
     client_info = logindb.get_user_info(client_credential["user"])
     if client_info is not None:
         sock.sendto(
             login_failed_msg(
                 "this user name    "
-                + "already exists    "
-                + "                  "
-                + "                  "
+                "already exists    "
+                "                  "
+                "                  "
             ),
             client_addr,
         )
@@ -238,26 +223,35 @@ def handle_msg_create_account(message, client_addr, sock):
         sock.sendto(
             login_failed_msg(
                 "internal error    "
-                + "when creating your"
-                + "account           "
-                + "                  "
+                "when creating your"
+                "account           "
+                "                  "
             ),
             client_addr,
         )
+    else:
+        sock.sendto(
+            logged_in_msg(client_info["user_id"], STNP_LOGIN_CREATE_ACCOUNT),
+            client_addr,
+        )
 
-    # Send response
-    sock.sendto(
-        logged_in_msg(client_info["user_id"], STNP_LOGIN_CREATE_ACCOUNT), client_addr
-    )
 
+class LoginServiceProtocol(asyncio.DatagramProtocol):
+    """Login service protocol."""
 
-def serve(listen_port):
-    """Serve login requests."""
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(("", listen_port))
-    while True:
-        message, client_addr = sock.recvfrom(256)
-        logging.debug("got message from %s: %s", client_addr, message)
+    def connection_made(self, transport: asyncio.BaseTransport) -> None:
+        """Handle a new connection."""
+        assert isinstance(transport, asyncio.DatagramTransport)
+        self.transport = transport
+
+    def datagram_received(self, message: bytes, client_addr: tuple[str, int]) -> None:
+        """Handle a datagram."""
+        logging.debug(
+            "got message from %s:%d: %s",
+            client_addr[0],
+            client_addr[1],
+            message,
+        )
         message_handlers = {
             STNP_LOGIN_ANONYMOUS: handle_msg_login_anonymous,
             STNP_LOGIN_PASSWORD: handle_msg_login_password,
@@ -267,17 +261,28 @@ def serve(listen_port):
             logging.debug("login message")
             if message[1] in message_handlers:
                 try:
-                    message_handlers[message[1]](message, client_addr, sock)
+                    message_handlers[message[1]](message, client_addr, self.transport)
                 except Exception:
                     logging.exception("error when handling message")
             else:
                 logging.debug("unknown login method")
-                sock.sendto(
+                self.transport.sendto(
                     login_failed_msg(
                         "invalid login     "
-                        + "message           "
-                        + "                  "
-                        + "                  "
+                        "message           "
+                        "                  "
+                        "                  "
                     ),
                     client_addr,
                 )
+
+
+async def serve(listen_port: int) -> asyncio.DatagramTransport:
+    """Serve login requests."""
+    logging.info("starting login service on port %s", listen_port)
+    loop = asyncio.get_running_loop()
+    transport, protocol = await loop.create_datagram_endpoint(
+        LoginServiceProtocol, local_addr=("0.0.0.0", listen_port)
+    )
+    assert isinstance(transport, asyncio.DatagramTransport)
+    return transport
