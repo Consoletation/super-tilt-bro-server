@@ -1,0 +1,36 @@
+name: Build Wheels
+
+on: [push, pull_request]
+
+jobs:
+  build-wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Install cibuildwheel
+      run: python -m pip install cibuildwheel
+
+    - name: Build the wheels
+      run: python -m cibuildwheel --output-dir wheelhouse
+      env:
+        CIBW_BUILD: cp3*
+        CIBW_SKIP: cp36-* cp37-* *-musllinux*
+        CIBW_BEFORE_ALL_LINUX: yum install -y libuuid-devel
+        CIBW_BEFORE_BUILD: pip install pybind11
+      working-directory: ./python
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: wheels
+        path: ./python/wheelhouse/*.whl
