@@ -13,6 +13,7 @@
 #include <fstream>
 #include <GameState.hpp>
 #include <map>
+#include <ostream>
 #include <string>
 #include <uuid/uuid.h>
 #include <vector>
@@ -495,9 +496,13 @@ int bmov_to_fm2(
 	const std::filesystem::path& savestate_data_dir,
 	const std::string& bmov_path,
 	uint8_t character_1_palette,
-	uint8_t character_2_palette
+	uint8_t character_2_palette,
+	std::optional<std::reference_wrapper<std::ostream>> output = std::nullopt
 )
 {
+	// Output to stdout by default
+	std::ostream& out_stream = output ? output->get() : std::cout;
+
 	// Parse bmov file
 	std::map<uint32_t, GameState::ControllerState> controller_a_history;
 	std::map<uint32_t, GameState::ControllerState> controller_b_history;
@@ -585,28 +590,28 @@ int bmov_to_fm2(
 	{
 #if 0
 		// Documentation states it is legal, but makes fceux crash :(
-		std::cout <<
+		out_stream <<
 			"comment stb.gameinfo stage=" << uint16_t(stage) << ' ' <<
 			"char_1=" << uint16_t(character_1) << ' ' <<
 			"char_2=" << uint16_t(character_2) << ' ' <<
 		'\n';
 #endif
-		std::cout << "version 3\n";
-		std::cout << "emuVersion 22020\n";
-		std::cout << "palFlag 1\n";
-		std::cout << "NewPPU 1\n";
-		std::cout << "fourscore 0\n";
-		std::cout << "port0 1\n";
-		std::cout << "port1 1\n";
-		std::cout << "port2 0\n";
-		std::cout << "romFilename tilt_no_network_unrom_(E)\n";
-		std::cout << "guid " << generate_guid() << "\n";
+		out_stream << "version 3\n";
+		out_stream << "emuVersion 22020\n";
+		out_stream << "palFlag 1\n";
+		out_stream << "NewPPU 1\n";
+		out_stream << "fourscore 0\n";
+		out_stream << "port0 1\n";
+		out_stream << "port1 1\n";
+		out_stream << "port2 0\n";
+		out_stream << "romFilename tilt_no_network_unrom_(E)\n";
+		out_stream << "guid " << generate_guid() << "\n";
 
 		std::vector<uint8_t> checksum(16, 0);
 		read_raw_file(checksum.begin(), (savestate_data_dir / "checksum.dat").native());
-		std::cout << "romChecksum base64:" << base64_encode(checksum) << "\n";
+		out_stream << "romChecksum base64:" << base64_encode(checksum) << "\n";
 
-		std::cout << "savestate base64:"+ base64_encode(generate_savestate(
+		out_stream << "savestate base64:"+ base64_encode(generate_savestate(
 			stage,
 			character_1, character_1_palette,
 			character_2, character_2_palette,
@@ -645,7 +650,7 @@ int bmov_to_fm2(
 				return res.str();
 			};
 
-			std::cout << "|0|" << controller(controller_a) << '|' << controller(controller_b) << "||\n";
+			out_stream << "|0|" << controller(controller_a) << '|' << controller(controller_b) << "||\n";
 		}
 	}
 
