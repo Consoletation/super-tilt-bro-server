@@ -8,7 +8,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest]
 
     steps:
     - uses: actions/checkout@v3
@@ -24,6 +24,7 @@ jobs:
     - name: Build the wheels
       run: python -m cibuildwheel --output-dir wheelhouse
       env:
+        CIBW_ARCHS_LINUX: x86_64
         CIBW_BUILD: cp3*
         CIBW_SKIP: cp36-* cp37-* *-musllinux*
         CIBW_BEFORE_ALL_LINUX: yum install -y libuuid-devel
