@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # usage:
 #   cat tilt/build.log | ./extract_anim_info_v2.py tilt/game-mod/mod.json

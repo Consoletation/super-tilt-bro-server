@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # usage:
 #   cat prg_rom/data/state_animations/*.asm > /tmp/anims.asm

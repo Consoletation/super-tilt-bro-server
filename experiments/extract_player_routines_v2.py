@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # usage:
 #   ./extract_player_routines_v2.py tilt/game-mod/mod.json
