@@ -47,11 +47,14 @@ requires = [
 ]
 build-backend = 'setuptools.build_meta'
 
-[tool.setuptools.packages]
-find = {}
+[tool.setuptools.packages.find]
+include = [
+    "login_server",
+    "ranking_server",
+    "replay_server",
+]
 
 [tool.setuptools_scm]
-root = ".."
 version_scheme = "post-release"
 
 [tool.black]

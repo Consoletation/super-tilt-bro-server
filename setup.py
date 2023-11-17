@@ -9,12 +9,12 @@ ext_modules = [
     Pybind11Extension(
         "bmov_to_fm2",
         [
-            "cpp/src/GameState.cpp",
-            "cpp/tools/bmov_to_fm2.cpp",
+            "src/GameState.cpp",
+            "tools/bmov_to_fm2.cpp",
         ],
         include_dirs=[
-            "cpp/src",
-            "cpp",
+            "src",
+            ".",
         ],
         define_macros=[("PYBIND11", "1")],
         extra_compile_args=["-flto"],
