@@ -3,11 +3,19 @@
 set -e
 set -x
 
+# Determine the directory of this script
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+# Store current working directory
+CWD="$(pwd)"
 tilt_dir="$1"
 if [ ! -d "$tilt_dir" ]; then
 	echo "USAGE: $0 TILT_DIR"
 	exit 1
 fi
+# Get absolute path of tilt_dir
+tilt_dir="$(cd "$tilt_dir" && pwd)"
+# Change to the directory of this script
+cd "$script_dir"
 
 xa_bin="${XA_BIN:-xa}"
 
@@ -76,3 +84,6 @@ tail -c +17 "$tilt_dir"/tilt_no_network_unrom_\(E\).nes | md5sum | cut -d' ' -f1
 
 # Entry point in the ROM
 echo $((16#$(grep '  forever ' /tmp/tilt_no_network_unrom_\(E\).lst | grep -Eo 'A:[0-9a-f]+' | grep -Eo '[0-9a-f]+'))) > entry_point.dat
+
+# Restore working directory
+cd "$CWD"
